@@ -11,6 +11,7 @@ import (
 	"github.com/cellofellow/gopiano/responses"
 	"github.com/GeertJohan/go.linenoise"
 	"github.com/howeyc/gopass"
+	"github.com/turbowookie/gompd/mpd"
 )
 
 var pandora *gopiano.Client
@@ -115,9 +116,26 @@ func main() {
 		fmt.Println("Unexpected error: %v", choice)
 		os.Exit(1)
 	}
+
+	mpdclient, err := mpd.Dial("tcp", "localhost:6600")
+	if err != nil {
+		fmt.Println("Unexpected error: %v", err)
+		os.Exit(1)
+	}
+	defer mpdclient.Close()
 	for _, item := range playlistResponse.Result.Items {
-		fmt.Printf("%s by %s from %s %s\n", item.SongName, item.ArtistName, item.AlbumName,
-			item.AudioURLMap["mediumQuality"].AudioURL)
+		fmt.Printf("%s by %s from %s\n", item.SongName, item.ArtistName, item.AlbumName)
+		err = mpdclient.Add(item.AudioURLMap["mediumQuality"].AudioURL)
+		if err != nil {
+			fmt.Println("Unexpected error: %v", err)
+			os.Exit(1)
+		}
+
+	}
+	err = mpdclient.Play(0)
+	if err != nil {
+		fmt.Println("Unexpected error: %v", err)
+		os.Exit(1)
 	}
 }
 
